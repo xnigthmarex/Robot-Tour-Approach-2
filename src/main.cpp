@@ -67,8 +67,8 @@ void stop();
 void rotate(int target_angle, float angle, float angular_velocity);
 void straight(int hold_angle, int angle, int target_count);
 
-// array of string commands
-int commands[] = {30};
+// array of int commands
+int commands[] = {50,90,50,180,50,270,50,0};
 int command_length = sizeof(commands) / sizeof(commands[0]) - 1;
 int command_index = 0;
 bool program_stop = false;
@@ -182,8 +182,8 @@ void loop()
         else
         {
 
-          float numRev = (commands[command_index] / wheel_circumference);
-          target_count = round(numRev * encoder_resolution);
+          float numRev = (commands[command_index] / wheel_circumference) ;
+          target_count = round(numRev * encoder_resolution) + 1;
           straight(target_angle, angle, target_count);
         }
       }
@@ -249,9 +249,9 @@ void straight(int hold_angle, int angle, int target_count)
   leftcount = 0;
   rightcount = 0;
 
-  int leftPower = 193;
-  int rightPower = 201;
-  int offset = 1;
+  int leftPower = 200;
+  int rightPower = 200;
+  int offset = 4;
 
   int left_diff, right_diff;
 
