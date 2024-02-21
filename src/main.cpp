@@ -76,7 +76,7 @@ void travel(int hold_angle, float angle, float angular_velocity, int target_coun
 int distance(); // average of 5 without PRE_DEF_ERROR_VAL
 
 // array of int commands
-int commands[] = {100};
+int commands[] = {100, 90, 100, 180, 100, 270, 100, 0};
 int command_length = sizeof(commands) / sizeof(commands[0]) - 1;
 int command_index = 0;
 bool program_stop = false;
@@ -131,6 +131,12 @@ void setup()
   digitalWrite(ALL_WAYS_ON, HIGH);
   switchPressed = false; // IMP
 
+  // Encoder Interrupts
+  pinMode(encoderright, INPUT_PULLUP);
+  attachInterrupt(
+      digitalPinToInterrupt(encoderright), []()
+      { rightcount++; },
+      RISING);
   // Ultrasonic sensor
   pinMode(TRIG, OUTPUT);
   pinMode(ECHO, INPUT);
@@ -142,14 +148,10 @@ void setup()
 void setup1() // core 2
 {
   pinMode(encoderleft, INPUT_PULLUP);
-  pinMode(encoderright, INPUT_PULLUP);
+
   attachInterrupt(
       digitalPinToInterrupt(encoderleft), []()
       { leftcount++; },
-      RISING);
-  attachInterrupt(
-      digitalPinToInterrupt(encoderright), []()
-      { rightcount++; },
       RISING);
 }
 
@@ -192,6 +194,13 @@ void loop()
         }
         else
         {
+          if (target_angle != 0)
+          {
+            if (angle < 0)
+            {
+              angle = 360 + angle;
+            }
+          }
           float numRev = (commands[command_index] / wheel_circumference);
           target_count = round(numRev * encoder_resolution) + 1;
           travel(target_angle, angle, angular_velocity, target_count);
@@ -258,23 +267,33 @@ void travel(int hold_angle, float angle, float angular_velocity, int target_coun
 {
   straight();
 
+  if (target_count < rightcount)
+  {
+    stop();
+    command_index++;
+    rightcount = 0;
+    left_speed = 180;
+    right_speed = 180;
+    delay(2000);
+    return;
+  }
+
   int delta_angle = round(hold_angle - angle);
   int target_angular_velocity;
 
-  Serial.println(angular_velocity);
   if (delta_angle > 30)
   {
-    target_angular_velocity = 65;
+    target_angular_velocity = 60;
   }
   else if (delta_angle < -30)
   {
-    target_angular_velocity = -65;
+    target_angular_velocity = -60;
   }
   else
   {
     target_angular_velocity = 2 * delta_angle;
   }
-   angular_velocity = -1 * angular_velocity;
+  angular_velocity = -1 * angular_velocity;
   if (round(target_angular_velocity - angular_velocity) == 0)
   {
     ;
