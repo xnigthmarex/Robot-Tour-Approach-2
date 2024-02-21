@@ -23,8 +23,8 @@ const int in2 = 9;
 const int enB = 6; // left
 const int in4 = 7;
 const int in3 = 8;
-int left_speed = 180;
-int right_speed = 180;
+int left_speed = 165;
+int right_speed = 165;
 
 // encoder
 const int encoderleft = 15;
@@ -38,7 +38,14 @@ int target_count = 0;
 // encoder variables
 const float encoder_resolution = 21.0;
 const float wheel_diameter = 6.8;
-const float wheel_circumference = M_PI * wheel_diameter;
+const float wheel_circumference = 3.14159 * wheel_diameter;
+
+// Ultrasonic sensor variables
+const int TRIG = 13;
+const int ECHO = 12;
+long duration;
+int sum_distance;
+const int PRE_DEF_ERROR_VAL = 400;
 
 // LED - PINS AND STATES
 const int blue_led = 19;
@@ -65,10 +72,11 @@ void right();
 void straight();
 void stop();
 void rotate(int target_angle, float angle, float angular_velocity);
-void straight(int hold_angle, int angle, int target_count);
+void travel(int hold_angle, float angle, float angular_velocity, int target_count);
+int distance(); // average of 5 without PRE_DEF_ERROR_VAL
 
 // array of int commands
-int commands[] = {50,90,50,180,50,270,50,0};
+int commands[] = {100};
 int command_length = sizeof(commands) / sizeof(commands[0]) - 1;
 int command_index = 0;
 bool program_stop = false;
@@ -80,12 +88,12 @@ void dmpDataReady()
 
 void setup()
 {
-  //LED
+  // LED
   pinMode(blue_led, OUTPUT);
   pinMode(red_led, OUTPUT);
   pinMode(green_led, OUTPUT);
   red();
-  
+
   Serial.begin(115200);
   Wire.begin();
   Wire.setClock(400000);
@@ -104,7 +112,6 @@ void setup()
   mpu.setDMPEnabled(true);
   dmpReady = true;
   packetSize = mpu.dmpGetFIFOPacketSize();
-  
 
   // Motor Driver
   pinMode(enA, OUTPUT); // left
@@ -124,7 +131,11 @@ void setup()
   digitalWrite(ALL_WAYS_ON, HIGH);
   switchPressed = false; // IMP
 
-  reset();  
+  // Ultrasonic sensor
+  pinMode(TRIG, OUTPUT);
+  pinMode(ECHO, INPUT);
+
+  reset();
   green();
 }
 
@@ -146,7 +157,7 @@ void loop()
 {
   if (switchPressed)
   {
-    
+
     if (!dmpReady)
       return;
 
@@ -159,13 +170,6 @@ void loop()
       float angle = ypr[0] * 180 / M_PI;
       float angular_velocity = gyro[2];
 
-      if (commands[command_index] != 0) // or != 90
-      {
-        if (angle < 0)
-        {
-          angle = 360 + angle;
-        }
-      }
       if (command_index > command_length)
       {
         switchPressed = false;
@@ -176,20 +180,25 @@ void loop()
       {
         if ((commands[command_index]) % 90 == 0)
         {
+          if (commands[command_index] != 0) // or != 90
+          {
+            if (angle < 0)
+            {
+              angle = 360 + angle;
+            }
+          }
           target_angle = commands[command_index];
           rotate(target_angle, angle, angular_velocity);
         }
         else
         {
-
-          float numRev = (commands[command_index] / wheel_circumference) ;
+          float numRev = (commands[command_index] / wheel_circumference);
           target_count = round(numRev * encoder_resolution) + 1;
-          straight(target_angle, angle, target_count);
+          travel(target_angle, angle, angular_velocity, target_count);
         }
       }
     }
   }
-  
 }
 
 void rotate(int target_angle, float angle, float angular_velocity)
@@ -201,6 +210,8 @@ void rotate(int target_angle, float angle, float angular_velocity)
   {
     stop();
     command_index++;
+    left_speed = 180;
+    right_speed = 180;
     delay(2000);
     return;
   }
@@ -218,7 +229,7 @@ void rotate(int target_angle, float angle, float angular_velocity)
 
   if (abs(deltaAngle) > 30)
   {
-    target_angular_velocity = 60;
+    target_angular_velocity = 50;
   }
   else
   {
@@ -243,48 +254,113 @@ void rotate(int target_angle, float angle, float angular_velocity)
   analogWrite(enA, left_speed);
 }
 
-void straight(int hold_angle, int angle, int target_count)
+void travel(int hold_angle, float angle, float angular_velocity, int target_count)
 {
   straight();
-  leftcount = 0;
-  rightcount = 0;
 
-  int leftPower = 200;
-  int rightPower = 200;
-  int offset = 4;
+  int delta_angle = round(hold_angle - angle);
+  int target_angular_velocity;
 
-  int left_diff, right_diff;
-
-  while (abs(rightcount) < abs(target_count))
+  Serial.println(angular_velocity);
+  if (delta_angle > 30)
   {
-    // leftPower = 198;
-    // rightPower = 201;
-
-    left_diff = abs(leftcount - prev_leftcount);
-    right_diff = abs(rightcount - prev_rightcount);
-
-    prev_leftcount = leftcount;
-    prev_rightcount = rightcount;
-
-    if (left_diff > right_diff)
-    {
-      leftPower = leftPower - (offset);
-      rightPower = rightPower + (offset);
-    }
-    else if (right_diff > left_diff)
-    {
-      leftPower = leftPower + (offset);
-      rightPower = rightPower - (offset);
-    }
-    
-    analogWrite(enA, leftPower);
-    analogWrite(enB, rightPower);
-
-    delay(10);
+    target_angular_velocity = 65;
   }
-  stop();
-  command_index++;
-  delay(2000);
+  else if (delta_angle < -30)
+  {
+    target_angular_velocity = -65;
+  }
+  else
+  {
+    target_angular_velocity = 2 * delta_angle;
+  }
+   angular_velocity = -1 * angular_velocity;
+  if (round(target_angular_velocity - angular_velocity) == 0)
+  {
+    ;
+  }
+  else if (target_angular_velocity > angular_velocity)
+  {
+    left_speed++;
+  }
+  else
+  {
+    left_speed--;
+  }
+
+  left_speed = constrain(left_speed, 0, 220);
+  right_speed = 200;
+  analogWrite(enA, left_speed);
+  analogWrite(enB, right_speed);
+}
+
+// void straight(int hold_angle, int angle, int target_count)
+// {
+//   straight();
+//   Serial.println(target_count);
+//   leftcount = 0;
+//   rightcount = 0;
+
+//   int leftPower = 195;
+//   int rightPower = 203;
+//   int offset = 7;
+
+//   int left_diff, right_diff;
+
+//   while (abs(rightcount) < abs(target_count))
+//   {
+//     leftPower = 195;
+//     rightPower = 203;
+
+//     left_diff = abs(leftcount - prev_leftcount);
+//     right_diff = abs(rightcount - prev_rightcount);
+
+//     prev_leftcount = leftcount;
+//     prev_rightcount = rightcount;
+
+//     if (left_diff > right_diff)
+//     {
+//       leftPower = leftPower - (offset);
+//       rightPower = rightPower + (offset);
+//     }
+//     else if (right_diff > left_diff)
+//     {
+//       leftPower = leftPower + (offset);
+//       rightPower = rightPower - (offset);
+//     }
+
+//     analogWrite(enA, leftPower);
+//     analogWrite(enB, rightPower);
+
+//     delay(5);
+//   }
+//   stop();
+//   command_index++;
+//   delay(2000);
+// }
+
+int distance()
+{
+  int count = 0;
+  int sum = 0;
+  while (count < 5)
+  {
+    digitalWrite(TRIG, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG, LOW);
+
+    duration = pulseIn(ECHO, HIGH);
+    sum_distance = (duration * 0.034) / 2;
+    if (sum_distance > 300)
+    {
+      break;
+    }
+    sum = sum + sum_distance;
+    count++;
+  }
+  return (sum / 5);
 }
 
 // motor functions
@@ -323,7 +399,7 @@ void stop()
 }
 
 void blue()
-{ 
+{
   digitalWrite(blue_led, !blue_led_state);
   blue_led_state = !blue_led_state;
 }
@@ -349,4 +425,3 @@ void reset()
   red_led_state = false;
   green_led_state = false;
 }
-
