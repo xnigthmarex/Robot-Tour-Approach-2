@@ -78,6 +78,7 @@ int distance(); // distance without PRE_DEF_ERROR_VAL
 
 // array of int commands
 //1000 is fpr ultrasonic sensor
+//1000 + x is for ultrasonic sensor (changes the default )
 //0,90,180,270 are for rotation
 //anything other than the multiples of 90 are for distance (with encoders)
 int commands[] = {40,90,40,180,40,270,40,0,40};
@@ -309,6 +310,7 @@ void travel(int hold_angle, float angle, float angular_velocity, int target_coun
     rightcount = 0;
     left_speed = 195;
     right_speed = 192;
+    PRE_DEV_TARGET_DISTANCE = 20; 
     delay(2000);
     return;
   }
@@ -362,6 +364,7 @@ void travel(int hold_angle, float angle, float angular_velocity, int current_dis
     rightcount = 0;
     left_speed = 195;
     right_speed = 192;
+    PRE_DEV_TARGET_DISTANCE = 20; 
     delay(2000);
     return;
   }
