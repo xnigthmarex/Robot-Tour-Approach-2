@@ -44,7 +44,7 @@ const int ECHO = 12;
 long duration;
 int sum_distance;
 const int PRE_DEF_ERROR_VAL = 400;
-const int PRE_DEV_TARGET_DISTANCE = 20; // TODO cm value for predefined distance
+int PRE_DEV_TARGET_DISTANCE = 20; 
 
 // LED - PINS AND STATES
 const int blue_led = 19;
@@ -146,12 +146,12 @@ void setup()
   // converting  distance(cm) to encoder count
   for (int i = 0; i <= command_length; i++)
   {
-    if ((!(commands[i] >= 1000)) && (!(commands[i] % 90 == 0))) // TODO point of failure - may be
+    if ((!(commands[i] >= 1000)) && (!(commands[i] % 90 == 0))) 
     {
-
       float numRev = (float)commands[i] / wheel_circumference;
       commands[i] = round(numRev * encoder_resolution);
     }
+    
   }
   reset();
   green();
@@ -224,6 +224,11 @@ void loop()
           }
           if (commands[command_index] >= 1000)
           {
+            if(commands[command_index] > 1000){
+              PRE_DEV_TARGET_DISTANCE = commands[command_index] - 1000;
+            }else{
+              PRE_DEV_TARGET_DISTANCE = 20; //TODO
+            }
             int current_distance = distance();
             travel(target_angle, angle, angular_velocity, current_distance);
           }
@@ -231,7 +236,6 @@ void loop()
           {
             target_count = commands[command_index];
             int right_count = rightcount;
-            Serial.println(right_count);
             travel(target_angle, angle, angular_velocity, target_count, right_count);
           }
         }
