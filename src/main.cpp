@@ -74,15 +74,15 @@ void rotate(int target_angle, float angle, float angular_velocity);
 void travel(int hold_angle, float angle, float angular_velocity, int target_count, int right_count);
 // overloaded function
 void travel(int hold_angle, float angle, float angular_velocity, int current_distance);
-int distance(); // average of 5 without PRE_DEF_ERROR_VAL
+int distance(); // distance without PRE_DEF_ERROR_VAL
 
 // array of int commands
 //1000 is fpr ultrasonic sensor
-
-int commands[] = {1000,90,1000,0,1000,90,100,0,1000};
+//0,90,180,270 are for rotation
+//anything other than the multiples of 90 are for distance (with encoders)
+int commands[] = {40,90,40,180,40,270,40,0,40};
 int command_length = sizeof(commands) / sizeof(commands[0]) - 1;
 int command_index = 0;
-bool program_stop = false;
 
 // temporary delay
 bool delay_temp = false;
@@ -161,22 +161,6 @@ void setup()
 
 void setup1()
 {
-  // pinMode(encoderright, INPUT_PULLUP);
-  // attachInterrupt(
-  //     digitalPinToInterrupt(encoderright), []()
-  //     {
-  //       rightcount++;
-  //       rp2040.fifo.push(rightcount);
-  //     },
-  //     RISING); //TODO check the interrupt type
-  // pinMode(encoderleft, INPUT_PULLUP);
-  // attachInterrupt(
-  //     digitalPinToInterrupt(encoderleft), []()
-  //     {
-  //       leftcount++;
-  //       rp2040.fifo.push(leftcount);
-  //     },
-  //     RISING);  //TODO check the interrupt type
 
   pinMode(encoderright, INPUT_PULLUP);
   attachInterrupt(
@@ -219,7 +203,7 @@ void loop()
       {
         if ((commands[command_index]) % 90 == 0)
         {
-          if (commands[command_index] != 0) // TODO or != 90
+          if (commands[command_index] != 0) 
           {
             if (angle < 0)
             {
@@ -320,7 +304,7 @@ void travel(int hold_angle, float angle, float angular_velocity, int target_coun
     command_index++;
     rightcount = 0;
     left_speed = 195;
-    right_speed = 190;
+    right_speed = 192;
     delay(2000);
     return;
   }
@@ -355,8 +339,8 @@ void travel(int hold_angle, float angle, float angular_velocity, int target_coun
       left_speed--;
     }
 
-    left_speed = constrain(left_speed, 0, 205);
-    right_speed = 190;
+    left_speed = constrain(left_speed, 0, 203);
+    right_speed = 192;
     analogWrite(enA, left_speed);
     analogWrite(enB, right_speed);
     delay(10);
@@ -373,7 +357,7 @@ void travel(int hold_angle, float angle, float angular_velocity, int current_dis
     command_index++;
     rightcount = 0;
     left_speed = 195;
-    right_speed = 190;
+    right_speed = 192;
     delay(2000);
     return;
   }
@@ -408,8 +392,8 @@ void travel(int hold_angle, float angle, float angular_velocity, int current_dis
       left_speed--;
     }
 
-    left_speed = constrain(left_speed, 0, 205);
-    right_speed = 190;
+    left_speed = constrain(left_speed, 0, 203);
+    right_speed = 192;
     analogWrite(enA, left_speed);
     analogWrite(enB, right_speed);
   }
