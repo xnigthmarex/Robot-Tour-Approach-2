@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include "I2Cdev.h"
 #include "MPU6050_6Axis_MotionApps20.h"
+#include <atomic>
+
 
 // MPU6050 variables
 MPU6050 mpu;
@@ -23,8 +25,8 @@ const int in2 = 9;
 const int enB = 6; // left
 const int in4 = 7;
 const int in3 = 8;
-int left_speed = 195;
-int right_speed = 190;
+int left_speed = 165;
+int right_speed = 165;
 
 // encoder
 const int encoderleft = 15;
@@ -34,8 +36,8 @@ volatile uint32_t rightcount = 0;
 int target_count = 0;
 
 // encoder variables
-const float encoder_resolution = 21.0;
-const float wheel_diameter = 6.9;
+const float encoder_resolution = 20.0;
+const float wheel_diameter = 6.8;
 const float wheel_circumference = 3.14159 * wheel_diameter;
 
 // Ultrasonic sensor variables
@@ -44,7 +46,7 @@ const int ECHO = 12;
 long duration;
 int sum_distance;
 const int PRE_DEF_ERROR_VAL = 400;
-const int PRE_DEV_TARGET_DISTANCE = 20; // TODO cm value for predefined distance
+const int PRE_DEV_TARGET_DISTANCE = 15; // TODO cm value for predefined distance
 
 // LED - PINS AND STATES
 const int blue_led = 19;
@@ -77,9 +79,7 @@ void travel(int hold_angle, float angle, float angular_velocity, int current_dis
 int distance(); // average of 5 without PRE_DEF_ERROR_VAL
 
 // array of int commands
-//1000 is fpr ultrasonic sensor
-
-int commands[] = {1000,90,1000,0,1000,90,100,0,1000};
+int commands[] = {1000,90,1000,180,1000,270,1000,0,1000};
 int command_length = sizeof(commands) / sizeof(commands[0]) - 1;
 int command_index = 0;
 bool program_stop = false;
@@ -149,7 +149,7 @@ void setup()
     if ((!(commands[i] >= 1000)) && (!(commands[i] % 90 == 0))) // TODO point of failure - may be
     {
 
-      float numRev = (float)commands[i] / wheel_circumference;
+      float numRev = (commands[i] / wheel_circumference);
       commands[i] = round(numRev * encoder_resolution);
     }
   }
@@ -181,10 +181,8 @@ void setup1()
   pinMode(encoderright, INPUT_PULLUP);
   attachInterrupt(
       digitalPinToInterrupt(encoderright), []()
-      { rightcount++
-      
-      ;Serial.println(rightcount); },
-      RISING);
+      { rightcount++; },
+      FALLING);
 }
 
 void loop()
@@ -319,8 +317,8 @@ void travel(int hold_angle, float angle, float angular_velocity, int target_coun
     stop();
     command_index++;
     rightcount = 0;
-    left_speed = 195;
-    right_speed = 190;
+    left_speed = 200;
+    right_speed = 200;
     delay(2000);
     return;
   }
@@ -355,11 +353,10 @@ void travel(int hold_angle, float angle, float angular_velocity, int target_coun
       left_speed--;
     }
 
-    left_speed = constrain(left_speed, 0, 205);
-    right_speed = 190;
+    left_speed = constrain(left_speed, 0, 210);
+    right_speed = 193;
     analogWrite(enA, left_speed);
     analogWrite(enB, right_speed);
-    delay(10);
   }
 }
 
@@ -367,13 +364,14 @@ void travel(int hold_angle, float angle, float angular_velocity, int target_coun
 void travel(int hold_angle, float angle, float angular_velocity, int current_distance)
 {
   straight();
+  Serial.println(current_distance);
   if (PRE_DEV_TARGET_DISTANCE >= current_distance)
   {
     stop();
     command_index++;
     rightcount = 0;
-    left_speed = 195;
-    right_speed = 190;
+    left_speed = 190;
+    right_speed = 200;
     delay(2000);
     return;
   }
@@ -408,8 +406,8 @@ void travel(int hold_angle, float angle, float angular_velocity, int current_dis
       left_speed--;
     }
 
-    left_speed = constrain(left_speed, 0, 205);
-    right_speed = 190;
+    left_speed = constrain(left_speed, 0, 210);
+    right_speed = 193;
     analogWrite(enA, left_speed);
     analogWrite(enB, right_speed);
   }
