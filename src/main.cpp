@@ -23,8 +23,8 @@ const int in2 = 9;
 const int enB = 6; // left
 const int in4 = 7;
 const int in3 = 8;
-int left_speed = 195;
-int right_speed = 190;
+int left_speed = 191;
+int right_speed = 192;
 
 // encoder
 const int encoderleft = 15;
@@ -42,11 +42,11 @@ const float wheel_circumference = 3.14159 * wheel_diameter;
 const int TRIG = 13;
 const int ECHO = 12;
 long duration;
-int sum_distance;
+float sum_distance;
 const int PRE_DEF_ERROR_VAL = 400;
-int PRE_DEV_TARGET_DISTANCE = 20; 
+int PRE_DEV_TARGET_DISTANCE = 25; 
 
-// LED - PINS AND STATES
+// LED - PINS AND STATES0
 const int blue_led = 19;
 const int red_led = 21;
 const int green_led = 20;
@@ -78,14 +78,15 @@ int distance(); // distance without PRE_DEF_ERROR_VAL
 
 // array of int commands
 //1000 is fpr ultrasonic sensor
+//? 1025 is START
 //1000 + x is for ultrasonic sensor (changes the default )
 //0,90,180,270 are for rotation
 //anything other than the multiples of 90 are for distance (with encoders)
-int commands[] = {40,90,40,180,40,270,40,0,40};
+int commands[] = {100,90,1000};
 int command_length = sizeof(commands) / sizeof(commands[0]) - 1;
 int command_index = 0;
 
-// temporary delay
+// temporary delay 
 bool delay_temp = false;
 
 void dmpDataReady()
@@ -228,8 +229,9 @@ void loop()
             if(commands[command_index] > 1000){
               PRE_DEV_TARGET_DISTANCE = commands[command_index] - 1000;
             }else{
-              PRE_DEV_TARGET_DISTANCE = 20; //TODO
+              PRE_DEV_TARGET_DISTANCE = 25; 
             }
+            
             int current_distance = distance();
             travel(target_angle, angle, angular_velocity, current_distance);
           }
@@ -254,10 +256,10 @@ void rotate(int target_angle, float angle, float angular_velocity)
   {
     stop();
     command_index++;
-    left_speed = 210;
-    right_speed = 200;
+    left_speed = 191;
+    right_speed = 192;
     rightcount = 0;
-    delay(2000);
+    delay(1000);
     return;
   }
   else
@@ -293,7 +295,7 @@ void rotate(int target_angle, float angle, float angular_velocity)
   {
     left_speed--;
   }
-  left_speed = constrain(left_speed, 0, 220);
+  left_speed = constrain(left_speed, 0, 210);
   right_speed = left_speed;
   analogWrite(enB, right_speed);
   analogWrite(enA, left_speed);
@@ -308,10 +310,10 @@ void travel(int hold_angle, float angle, float angular_velocity, int target_coun
     stop();
     command_index++;
     rightcount = 0;
-    left_speed = 195;
+    left_speed = 191;
     right_speed = 192;
-    PRE_DEV_TARGET_DISTANCE = 20; 
-    delay(2000);
+    PRE_DEV_TARGET_DISTANCE = 25; 
+    delay(1000);
     return;
   }
   else
@@ -345,7 +347,7 @@ void travel(int hold_angle, float angle, float angular_velocity, int target_coun
       left_speed--;
     }
 
-    left_speed = constrain(left_speed, 0, 203);
+    left_speed = constrain(left_speed, 0, 205);
     right_speed = 192;
     analogWrite(enA, left_speed);
     analogWrite(enB, right_speed);
@@ -362,14 +364,15 @@ void travel(int hold_angle, float angle, float angular_velocity, int current_dis
     stop();
     command_index++;
     rightcount = 0;
-    left_speed = 195;
+    left_speed = 193;
     right_speed = 192;
-    PRE_DEV_TARGET_DISTANCE = 20; 
-    delay(2000);
+    PRE_DEV_TARGET_DISTANCE = 25; 
+    delay(1000);
     return;
   }
   else
   {
+    
     int delta_angle = round(hold_angle - angle);
     int target_angular_velocity;
 
@@ -399,14 +402,14 @@ void travel(int hold_angle, float angle, float angular_velocity, int current_dis
       left_speed--;
     }
 
-    left_speed = constrain(left_speed, 0, 203);
+    left_speed = constrain(left_speed, 0, 205);
     right_speed = 192;
     analogWrite(enA, left_speed);
     analogWrite(enB, right_speed);
   }
 }
 
-int distance() // TODO validate the function
+int distance()
 {
   // int count = 0;
   // int sum = 0;
@@ -437,7 +440,6 @@ int distance() // TODO validate the function
 
   duration = pulseIn(ECHO, HIGH);
   sum_distance = (duration * 0.034) / 2;
-
   return sum_distance;
 }
 
